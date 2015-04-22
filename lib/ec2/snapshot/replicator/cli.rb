@@ -1,3 +1,4 @@
+require "ec2/snapshot/replicator"
 require 'thor'
 
 module EC2

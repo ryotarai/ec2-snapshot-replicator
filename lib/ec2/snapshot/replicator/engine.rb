@@ -1,3 +1,5 @@
+require 'aws-sdk'
+
 module EC2
   module Snapshot
     module Replicator
