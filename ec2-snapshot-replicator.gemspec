@@ -5,7 +5,7 @@ require 'ec2/snapshot/replicator/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "ec2-snapshot-replicator"
-  spec.version       = Ec2::Snapshot::Replicator::VERSION
+  spec.version       = EC2::Snapshot::Replicator::VERSION
   spec.authors       = ["Ryota Arai"]
   spec.email         = ["ryota.arai@gmail.com"]
 
