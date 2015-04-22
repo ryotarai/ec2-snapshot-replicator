@@ -2,27 +2,30 @@
 
 **THIS IS NOT READY TO USE!!**
 
+Replicate snapshots to another region with delayed deletion.
+
 ## Installation
-
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'ec2-snapshot-replicator'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
 
     $ gem install ec2-snapshot-replicator
 
 ## Usage
 
 ```
-$ ec2-snapshot-replicator --from-region=ap-northeast-1 --to-region=us-east-1 --delay-deletion=1w
+$ ec2-snapshot-replicator start \
+    --delay-deletion-sec=3600 \
+    --interval-sec=600 \
+    --source-region=ap-northeast-1 \
+    --destination-region=us-east-1 \
+    --owner-id=123456789
 ```
+
+If the above settings are provided:
+
+- loop the following:
+  - If a snapshot in the source region is not found in the destination region, copy it to the destination region and create `SourceSnapshotId` tag.
+  - If a snapshot in the destination region is not found in the source region, create `DeleteAfter` tag which is (now + 1 day) in seconds since unix epoch.
+  - If `DeleteAfter` time of a snapshot in the destination region is over now, delete it.
+  - Sleep 10 minutes
 
 ## Development
 
@@ -32,7 +35,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-1. Fork it ( https://github.com/[my-github-username]/ec2-snapshot-replicator/fork )
+1. Fork it ( https://github.com/ryotarai/ec2-snapshot-replicator/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
