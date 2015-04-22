@@ -1,8 +1,6 @@
-# Ec2::Snapshot::Replicator
+# ec2-snapshot-replicator
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/ec2/snapshot/replicator`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+**THIS IS NOT READY TO USE!!**
 
 ## Installation
 
@@ -22,7 +20,9 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```
+$ ec2-snapshot-replicator --from-region=ap-northeast-1 --to-region=us-east-1 --delay-deletion=1w
+```
 
 ## Development
 
