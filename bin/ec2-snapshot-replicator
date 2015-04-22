@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+require 'ec2/snapshot/replicator'
+
+EC2::Snapshot::Replicator::CLI.start
+
