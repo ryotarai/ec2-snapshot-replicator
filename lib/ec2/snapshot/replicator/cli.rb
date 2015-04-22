@@ -8,6 +8,10 @@ module EC2
         def version
           puts "v#{EC2::Snapshot::Replicator::VERSION}"
         end
+
+        def start
+          Engine.new.start
+        end
       end
     end
   end
