@@ -12,8 +12,8 @@ module EC2
         desc "start", "Start"
         method_option :source_region, type: :string, required: true
         method_option :destination_region, type: :string, required: true
-        method_option :interval_sec, type: :integer, default: 60 * 10
-        method_option :delay_deletion_sec, type: :integer, default: 60 * 60 * 24 * 7
+        method_option :interval_sec, type: :numeric, default: 60 * 10
+        method_option :delay_deletion_sec, type: :numeric, default: 60 * 60 * 24 * 7
         def start
           config = Config.new
           config.load_options(options)
