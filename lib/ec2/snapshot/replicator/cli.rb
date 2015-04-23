@@ -21,10 +21,11 @@ module EC2
         method_option :config, type: :string
         def start
           config = Config.new
+
+          config.load_options(options)
           if options[:config]
             config.load_yaml_file(options[:config])
           end
-          config.load_options(options)
 
           if options[:once]
             Engine.new(config).run_once
