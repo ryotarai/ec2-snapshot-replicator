@@ -34,8 +34,22 @@ module EC2
 
         def replicate_snapshots
           Logger.info ">>> replicating snapshots..."
-          @source_ec2.snapshots(owner_ids: [@config.owner_id]).each do |snapshot|
-            unless @destination_ec2.snapshots(owner_ids: [@config.owner_id], filters: [{name: "tag:#{SOURCE_SNAPSHOT_ID_TAG_KEY}", values: [snapshot.id]}]).first
+
+          source_snapshots = @source_ec2.snapshots(owner_ids: [@config.owner_id])
+          source_snapshot_ids = source_snapshots.map {|s| s.id }
+
+          destination_snapshots = @destination_ec2.snapshots(owner_ids: [@config.owner_id], filters: [{name: "tag:#{SOURCE_SNAPSHOT_ID_TAG_KEY}", values: source_snapshot_ids}])
+          source_snapshots.each do |snapshot|
+            destination_snapshot = destination_snapshots.find do |s|
+              s.tags.find do |t|
+                t.key == SOURCE_SNAPSHOT_ID_TAG_KEY &&
+                  t.value == snapshot.id
+              end
+            end
+
+            if destination_snapshot
+              Logger.debug "[#{snapshot.id}] already replicated"
+            else
               Logger.info "[#{snapshot.id}] replicating..."
 
               ask_continue("Copy snapshot.")
@@ -53,28 +67,38 @@ module EC2
                   {key: SOURCE_SNAPSHOT_ID_TAG_KEY, value: snapshot.id},
                 ],
               )
-            else
-              Logger.debug "[#{snapshot.id}] already replicated"
             end
           end
         end
 
         def mark_deleted_snapshots
           Logger.info ">>> marking deleted snapshots..."
-          @destination_ec2.snapshots(owner_ids: [@config.owner_id]).each do |snapshot|
+
+          destination_snapshots = @destination_ec2.snapshots(owner_ids: [@config.owner_id]).select do |snapshot|
             if snapshot.tags.find {|t| t.key == DELETE_AFTER_TAG_KEY }
-              next
+              next false
             end
 
-            Logger.debug "[#{snapshot.id}] checking deleted or not..."
-            tag = snapshot.tags.find {|t| t.key == SOURCE_SNAPSHOT_ID_TAG_KEY }
-            unless tag
+            unless snapshot.tags.find {|t| t.key == SOURCE_SNAPSHOT_ID_TAG_KEY }
               Logger.debug "[#{snapshot.id}] tag #{SOURCE_SNAPSHOT_ID_TAG_KEY} is not found."
-              next
+              next false
             end
 
-            unless @source_ec2.snapshots(owner_ids: [@config.owner_id], filters: [{name: 'snapshot-id', values: [tag.value]}]).first
-              Logger.info "[#{snapshot.id}] creating #{DELETE_AFTER_TAG_KEY} tag because source snapshot (#{tag.value}) is deleted."
+            true
+          end
+
+          source_snapshot_ids = destination_snapshots.map do |snapshot|
+            snapshot.tags.find {|t| t.key == SOURCE_SNAPSHOT_ID_TAG_KEY }.value
+          end
+
+          source_snapshots = @source_ec2.snapshots(owner_ids: [@config.owner_id], filters: [{name: 'snapshot-id', values: source_snapshot_ids}])
+
+          destination_snapshots.each do |snapshot|
+            source_snapshot_id = snapshot.tags.find {|t| t.key == SOURCE_SNAPSHOT_ID_TAG_KEY }.value
+            if source_snapshots.find {|s| s.id == source_snapshot_id }
+              Logger.debug "[#{snapshot.id}] source snapshot (#{source_snapshot_id}) exists"
+            else
+              Logger.info "[#{snapshot.id}] creating #{DELETE_AFTER_TAG_KEY} tag because source snapshot (#{source_snapshot_id}) is deleted."
 
               delete_after = (Time.now + @config.delay_deletion_sec).to_i
               ask_continue("Create a tag #{DELETE_AFTER_TAG_KEY}:#{delete_after}.")
