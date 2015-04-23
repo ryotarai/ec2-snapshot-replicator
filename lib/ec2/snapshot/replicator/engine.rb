@@ -38,44 +38,44 @@ module EC2
           Logger.info ">>> replicating snapshots..."
 
           source_snapshots = @source_ec2.snapshots(owner_ids: [@config.owner_id])
-          source_snapshot_ids = source_snapshots.map {|s| s.id }
 
           # The maximum number of filter values specified on a single call is 200
-          destination_snapshots = source_snapshot_ids.each_slice(190).flat_map do |ids|
-            @destination_ec2.snapshots(
+          source_snapshots.each_slice(190) do |snapshots|
+            ids = snapshots.map(&:id)
+            destination_snapshots = @destination_ec2.snapshots(
               owner_ids: [@config.owner_id],
               filters: [{name: "tag:#{SOURCE_SNAPSHOT_ID_TAG_KEY}", values: ids}]
-            ).to_a
-          end
+            )
 
-          source_snapshots.each do |snapshot|
-            destination_snapshot = destination_snapshots.find do |s|
-              s.tags.find do |t|
-                t.key == SOURCE_SNAPSHOT_ID_TAG_KEY &&
-                  t.value == snapshot.id
+            snapshots.each do |snapshot|
+              destination_snapshot = destination_snapshots.find do |s|
+                s.tags.find do |t|
+                  t.key == SOURCE_SNAPSHOT_ID_TAG_KEY &&
+                    t.value == snapshot.id
+                end
               end
-            end
 
-            if destination_snapshot
-              Logger.debug "[#{snapshot.id}] already replicated"
-            else
-              Logger.info "[#{snapshot.id}] replicating..."
+              if destination_snapshot
+                Logger.debug "[#{snapshot.id}] already replicated"
+              else
+                Logger.info "[#{snapshot.id}] replicating..."
 
-              ask_continue("Copy snapshot.")
+                ask_continue("Copy snapshot.")
 
-              res = @destination_ec2.snapshot(snapshot.id).copy(
-                source_region: @config.source_region,
-                destination_region: @config.destination_region,
-                description: "(replicated) #{snapshot.description}",
-              )
+                res = @destination_ec2.snapshot(snapshot.id).copy(
+                  source_region: @config.source_region,
+                  destination_region: @config.destination_region,
+                  description: "(replicated) #{snapshot.description}",
+                )
 
-              Logger.debug "[#{res.snapshot_id}] created in #{@config.destination_region}"
-              copied_snapshot = @destination_ec2.snapshot(res.snapshot_id)
-              copied_snapshot.create_tags(
-                tags: [
-                  {key: SOURCE_SNAPSHOT_ID_TAG_KEY, value: snapshot.id},
-                ],
-              )
+                Logger.debug "[#{res.snapshot_id}] created in #{@config.destination_region}"
+                copied_snapshot = @destination_ec2.snapshot(res.snapshot_id)
+                copied_snapshot.create_tags(
+                  tags: [
+                    {key: SOURCE_SNAPSHOT_ID_TAG_KEY, value: snapshot.id},
+                  ],
+                )
+              end
             end
           end
         end
@@ -96,29 +96,29 @@ module EC2
             true
           end
 
-          source_snapshot_ids = destination_snapshots.map do |snapshot|
-            snapshot.tags.find {|t| t.key == SOURCE_SNAPSHOT_ID_TAG_KEY }.value
-          end
-
           # The maximum number of filter values specified on a single call is 200
-          source_snapshots = source_snapshot_ids.each_slice(190).flat_map do |ids|
-            @source_ec2.snapshots(owner_ids: [@config.owner_id], filters: [{name: 'snapshot-id', values: ids}]).to_a
-          end
+          destination_snapshots.each_slice(190) do |snapshots|
+            ids = snapshots.map do |snapshot|
+              snapshot.tags.find {|t| t.key == SOURCE_SNAPSHOT_ID_TAG_KEY }.value
+            end
 
-          destination_snapshots.each do |snapshot|
-            source_snapshot_id = snapshot.tags.find {|t| t.key == SOURCE_SNAPSHOT_ID_TAG_KEY }.value
-            if source_snapshots.find {|s| s.id == source_snapshot_id }
-              Logger.debug "[#{snapshot.id}] source snapshot (#{source_snapshot_id}) exists"
-            else
-              Logger.info "[#{snapshot.id}] creating #{DELETE_AFTER_TAG_KEY} tag because source snapshot (#{source_snapshot_id}) is deleted."
+            source_snapshots = @source_ec2.snapshots(owner_ids: [@config.owner_id], filters: [{name: 'snapshot-id', values: ids}])
 
-              delete_after = (Time.now + @config.delay_deletion_sec).to_i
-              ask_continue("Create a tag #{DELETE_AFTER_TAG_KEY}:#{delete_after}.")
-              snapshot.create_tags(
-                tags: [
-                  {key: DELETE_AFTER_TAG_KEY, value: delete_after.to_s},
-                ],
-              )
+            snapshots.each do |snapshot|
+              source_snapshot_id = snapshot.tags.find {|t| t.key == SOURCE_SNAPSHOT_ID_TAG_KEY }.value
+              if source_snapshots.find {|s| s.id == source_snapshot_id }
+                Logger.debug "[#{snapshot.id}] source snapshot (#{source_snapshot_id}) exists"
+              else
+                Logger.info "[#{snapshot.id}] creating #{DELETE_AFTER_TAG_KEY} tag because source snapshot (#{source_snapshot_id}) is deleted."
+
+                delete_after = (Time.now + @config.delay_deletion_sec).to_i
+                ask_continue("Create a tag #{DELETE_AFTER_TAG_KEY}:#{delete_after}.")
+                snapshot.create_tags(
+                  tags: [
+                    {key: DELETE_AFTER_TAG_KEY, value: delete_after.to_s},
+                  ],
+                )
+              end
             end
           end
         end
