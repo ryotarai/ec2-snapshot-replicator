@@ -38,7 +38,7 @@ module EC2::Snapshot::Replicator
             .and_return(destination_snapshot)
 
           expect(source_snapshot).to receive(:copy)
-            .with(source_region: config.source_region, destination_region: config.destination_region, description: 'desc')
+            .with(source_region: config.source_region, destination_region: config.destination_region, description: '(replicated) desc')
             .and_return(double(snapshot_id: destination_snapshot.id))
 
           expect(destination_snapshot).to receive(:create_tags)

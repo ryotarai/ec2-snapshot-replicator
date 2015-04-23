@@ -66,7 +66,7 @@ module EC2
               res = @destination_ec2.snapshot(snapshot.id).copy(
                 source_region: @config.source_region,
                 destination_region: @config.destination_region,
-                description: snapshot.description,
+                description: "(replicated) #{snapshot.description}",
               )
 
               Logger.debug "[#{res.snapshot_id}] created in #{@config.destination_region}"
