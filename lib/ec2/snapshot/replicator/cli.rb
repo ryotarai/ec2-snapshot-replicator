@@ -17,11 +17,16 @@ module EC2
         method_option :delay_deletion_sec, type: :numeric, default: 60 * 60 * 24 * 7
         method_option :owner_id, type: :string, required: true
         method_option :debug, type: :boolean, default: false
+        method_option :once, type: :boolean, default: false
         def start
           config = Config.new
           config.load_options(options)
 
-          Engine.new(config).start
+          if options[:once]
+            Engine.new(config).run_once
+          else
+            Engine.new(config).start
+          end
         end
       end
     end
