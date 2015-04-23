@@ -40,7 +40,14 @@ module EC2
           source_snapshots = @source_ec2.snapshots(owner_ids: [@config.owner_id])
           source_snapshot_ids = source_snapshots.map {|s| s.id }
 
-          destination_snapshots = @destination_ec2.snapshots(owner_ids: [@config.owner_id], filters: [{name: "tag:#{SOURCE_SNAPSHOT_ID_TAG_KEY}", values: source_snapshot_ids}])
+          # The maximum number of filter values specified on a single call is 200
+          destination_snapshots = source_snapshot_ids.each_slice(190).flat_map do |ids|
+            @destination_ec2.snapshots(
+              owner_ids: [@config.owner_id],
+              filters: [{name: "tag:#{SOURCE_SNAPSHOT_ID_TAG_KEY}", values: ids}]
+            ).to_a
+          end
+
           source_snapshots.each do |snapshot|
             destination_snapshot = destination_snapshots.find do |s|
               s.tags.find do |t|
@@ -93,7 +100,10 @@ module EC2
             snapshot.tags.find {|t| t.key == SOURCE_SNAPSHOT_ID_TAG_KEY }.value
           end
 
-          source_snapshots = @source_ec2.snapshots(owner_ids: [@config.owner_id], filters: [{name: 'snapshot-id', values: source_snapshot_ids}])
+          # The maximum number of filter values specified on a single call is 200
+          source_snapshots = source_snapshot_ids.each_slice(190).flat_map do |ids|
+            @source_ec2.snapshots(owner_ids: [@config.owner_id], filters: [{name: 'snapshot-id', values: ids}]).to_a
+          end
 
           destination_snapshots.each do |snapshot|
             source_snapshot_id = snapshot.tags.find {|t| t.key == SOURCE_SNAPSHOT_ID_TAG_KEY }.value
