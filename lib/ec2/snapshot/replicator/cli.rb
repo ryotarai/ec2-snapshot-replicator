@@ -18,8 +18,12 @@ module EC2
         method_option :owner_id, type: :string, required: true
         method_option :debug, type: :boolean, default: false
         method_option :once, type: :boolean, default: false
+        method_option :config, type: :string
         def start
           config = Config.new
+          if options[:config]
+            config.load_yaml_file(options[:config])
+          end
           config.load_options(options)
 
           if options[:once]
