@@ -14,6 +14,14 @@ module EC2
             self[member] = value if value
           end
         end
+
+        def validate!
+          %w!source_region destination_region interval_sec delay_deletion_sec owner_id!.each do |k|
+            unless self[k]
+              raise "#{k} is not set."
+            end
+          end
+        end
       end
     end
   end
