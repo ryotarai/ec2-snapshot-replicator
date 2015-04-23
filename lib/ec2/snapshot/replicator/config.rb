@@ -10,7 +10,8 @@ module EC2
 
         def load_options(options)
           self.members.each do |member|
-            self[member] ||= options[member] || options[member.to_s]
+            value = options[member] || options[member.to_s]
+            self[member] = value if value
           end
         end
       end
