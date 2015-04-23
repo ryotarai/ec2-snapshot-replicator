@@ -11,13 +11,14 @@ module EC2::Snapshot::Replicator
         c.source_region = "ap-northeast-1"
         c.destination_region = "us-east-1"
         c.owner_id = "123456789"
+        c.delay_deletion_sec = 3600
       end
     end
 
-    describe "#replicate_snapshots" do
-      let(:source_snapshot) { double(:snapshot, id: "snap-source1", description: 'desc') }
-      let(:destination_snapshot) { double(snapshot_id: 'snap-dest1') }
+    let(:source_snapshot) { double(:snapshot, id: "snap-source1", description: 'desc') }
+    let(:destination_snapshot) { double(:snapshot, id: 'snap-dest1', tags: [double(:tag, key: 'SourceSnapshotId', value: 'snap-source1')]) }
 
+    describe "#replicate_snapshots" do
       context "when the source snapshot is not replicated" do
         it "copies the snapshot" do
           expect(engine.source_ec2).to receive(:snapshots)
@@ -38,7 +39,7 @@ module EC2::Snapshot::Replicator
 
           expect(source_snapshot).to receive(:copy)
             .with(source_region: config.source_region, destination_region: config.destination_region, description: 'desc')
-            .and_return(destination_snapshot)
+            .and_return(double(snapshot_id: destination_snapshot.id))
 
           expect(destination_snapshot).to receive(:create_tags)
             .with(tags: [{key: 'SourceSnapshotId', value: 'snap-source1'}])
@@ -62,6 +63,44 @@ module EC2::Snapshot::Replicator
           engine.replicate_snapshots
         end
       end
+    end
+
+    describe "#mark_deleted_snapshots" do
+      context "when the source snapshot is already deleted" do
+        it "marks the destination snapshot 'will be deleted'" do
+          expect(engine.destination_ec2).to receive(:snapshots)
+            .with(owner_ids: [config.owner_id])
+            .and_return([destination_snapshot])
+
+          expect(engine.source_ec2).to receive(:snapshots)
+            .with(owner_ids: [config.owner_id], filters: [{name: 'snapshot-id', values: ['snap-source1']}])
+            .and_return([])
+
+          expect(destination_snapshot).to receive(:create_tags)
+            .with(tags: [{key: 'DeleteAfter', value: (Time.now + config.delay_deletion_sec).to_i.to_s}])
+
+          engine.mark_deleted_snapshots
+        end
+      end
+
+      context "when the source snapshot is not deleted" do
+        it "doesn't mark the destination snapshot" do
+          expect(engine.destination_ec2).to receive(:snapshots)
+            .with(owner_ids: [config.owner_id])
+            .and_return([destination_snapshot])
+
+          expect(engine.source_ec2).to receive(:snapshots)
+            .with(owner_ids: [config.owner_id], filters: [{name: 'snapshot-id', values: ['snap-source1']}])
+            .and_return([source_snapshot])
+
+          expect(destination_snapshot).not_to receive(:create_tags)
+
+          engine.mark_deleted_snapshots
+        end
+      end
+    end
+
+    describe "#delete_snapshots" do
     end
   end
 end
