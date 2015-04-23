@@ -7,6 +7,8 @@ module EC2
         SOURCE_SNAPSHOT_ID_TAG_KEY = 'SourceSnapshotId'
         DELETE_AFTER_TAG_KEY = 'DeleteAfter'
 
+        attr_reader :source_ec2, :destination_ec2
+
         def initialize(config)
           @config = config
 
