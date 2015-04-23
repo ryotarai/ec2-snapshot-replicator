@@ -101,6 +101,33 @@ module EC2::Snapshot::Replicator
     end
 
     describe "#delete_snapshots" do
+      context "when it is over DeleteAfter time" do
+        let(:destination_snapshot) { double(:snapshot, id: 'snap-dest1', tags: [double(:tag, key: 'SourceSnapshotId', value: 'snap-source1'), double(:tag, key: 'DeleteAfter', value: (Time.now - 600).to_i.to_s)]) }
+
+        it "deletes the snapshot" do
+          expect(engine.destination_ec2).to receive(:snapshots)
+            .with(owner_ids: [config.owner_id])
+            .and_return([destination_snapshot])
+
+          expect(destination_snapshot).to receive(:delete)
+
+          engine.delete_snapshots
+        end
+      end
+
+      context "when it is not over DeleteAfter time" do
+        let(:destination_snapshot) { double(:snapshot, id: 'snap-dest1', tags: [double(:tag, key: 'SourceSnapshotId', value: 'snap-source1'), double(:tag, key: 'DeleteAfter', value: (Time.now + 600).to_i.to_s)]) }
+
+        it "doesn't delete the snapshot" do
+          expect(engine.destination_ec2).to receive(:snapshots)
+            .with(owner_ids: [config.owner_id])
+            .and_return([destination_snapshot])
+
+          expect(destination_snapshot).not_to receive(:delete)
+
+          engine.delete_snapshots
+        end
+      end
     end
   end
 end
