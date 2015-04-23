@@ -19,16 +19,18 @@ module EC2
         def start
           Logger.info "start loop"
           while true
-            replicate_snapshots
-            mark_deleted_snapshots
-            delete_snapshots
+            run_once
 
             Logger.info "sleeping for #{@config.interval_sec} sec..."
             sleep @config.interval_sec
           end
         end
 
-        private
+        def run_once
+          replicate_snapshots
+          mark_deleted_snapshots
+          delete_snapshots
+        end
 
         def replicate_snapshots
           Logger.info ">>> replicating snapshots..."
@@ -103,6 +105,8 @@ module EC2
             end
           end
         end
+
+        private
 
         def ask_continue(msg)
           return unless @config.debug
