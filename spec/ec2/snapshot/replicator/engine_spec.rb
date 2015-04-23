@@ -56,7 +56,7 @@ module EC2::Snapshot::Replicator
 
           expect(engine.destination_ec2).to receive(:snapshots)
             .with(owner_ids: [config.owner_id], filters: [{name: "tag:SourceSnapshotId", values: [source_snapshot.id]}])
-            .and_return([double(:snapshot, id: 'snap-dest1')])
+            .and_return([destination_snapshot])
 
           expect(source_snapshot).not_to receive(:copy)
 
