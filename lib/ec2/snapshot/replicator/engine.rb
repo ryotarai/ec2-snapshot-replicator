@@ -12,6 +12,8 @@ module EC2
         def initialize(config)
           @config = config
 
+          set_credentials
+
           @source_ec2 = Aws::EC2::Resource.new(region: @config.source_region)
           @destination_ec2 = Aws::EC2::Resource.new(region: @config.destination_region)
         end
@@ -138,6 +140,17 @@ module EC2
           print "#{msg} continue? (y/N): "
           unless $stdin.gets.downcase =~ /\Ay/
             abort
+          end
+        end
+
+        def set_credentials
+          if @config.access_key_id && @config.secret_access_key
+            Aws.config.update({
+              credentials: Aws::Credentials.new(
+                @config.access_key_id,
+                @config.secret_access_key,
+              ),
+            })
           end
         end
       end
