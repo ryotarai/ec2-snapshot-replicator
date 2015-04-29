@@ -12,6 +12,25 @@ Replicate snapshots to another region with delayed deletion.
 
 ```
 $ ec2-snapshot-replicator start \
+    --source-region=ap-northeast-1 \
+    --destination-region=us-east-1 \
+    --owner-id=123456789
+```
+
+### Options
+
+- `--source-region`: region name where snapshots are replicated from (e.g. ap-northeast-1)
+- `--destination-region`: region name where snapshots are replicated to (e.g. us-east-1)
+- `--owner-id`: [account ID](http://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html) of owner of snapshots
+- `--once`: replicate once and exit (default: false)
+- `--delay-deletion-sec`: if the source snapshot is deleted, the replicated one in the destination region will be deleted after `delay-deletion-sec`. (default: 604800 = 1 week)
+- `--interval-sec`: interval seconds of loop (default: 600)
+- `--config`: load configuration from YAML file (optional)
+
+## What will be done?
+
+```
+$ ec2-snapshot-replicator start \
     --delay-deletion-sec=3600 \
     --interval-sec=600 \
     --source-region=ap-northeast-1 \
