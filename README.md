@@ -1,6 +1,6 @@
 # ec2-snapshot-replicator
 
-**THIS IS NOT READY TO USE!!**
+[![Circle CI](https://circleci.com/gh/ryotarai/ec2-snapshot-replicator.svg?style=svg)](https://circleci.com/gh/ryotarai/ec2-snapshot-replicator)
 
 Replicate snapshots to another region with delayed deletion.
 
